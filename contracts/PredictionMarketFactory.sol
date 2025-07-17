@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "./PredictionMarket.sol";
+
+contract PredictionMarketFactory is Ownable {
+    address[] public markets;
+
+    event MarketCreated(address indexed market, string prompt, string asset, uint256 closeTime);
+
+    function createMarket(string memory prompt, string memory asset, uint256 closeTime) external onlyOwner {
+        PredictionMarket market = new PredictionMarket(prompt, asset, closeTime, msg.sender);
+        markets.push(address(market));
+        emit MarketCreated(address(market), prompt, asset, closeTime);
+    }
+
+    function getMarkets() external view returns (address[] memory) {
+        return markets;
+    }
+} 
