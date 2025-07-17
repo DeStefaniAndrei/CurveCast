@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./PredictionMarket.sol";
 
 contract PredictionMarketFactory is Ownable {
@@ -10,8 +9,23 @@ contract PredictionMarketFactory is Ownable {
 
     event MarketCreated(address indexed market, string prompt, string asset, uint256 closeTime);
 
-    function createMarket(string memory prompt, string memory asset, uint256 closeTime) external onlyOwner {
-        PredictionMarket market = new PredictionMarket(prompt, asset, closeTime, msg.sender);
+    constructor(address admin) Ownable(admin) {}
+
+    function createMarket(
+        string memory prompt,
+        string memory asset,
+        uint256 closeTime,
+        address dispatcher,
+        bytes memory destination
+    ) external onlyOwner {
+        PredictionMarket market = new PredictionMarket(
+            prompt,
+            asset,
+            closeTime,
+            msg.sender,
+            dispatcher,
+            destination
+        );
         markets.push(address(market));
         emit MarketCreated(address(market), prompt, asset, closeTime);
     }
