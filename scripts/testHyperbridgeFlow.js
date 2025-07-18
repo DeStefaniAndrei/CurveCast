@@ -1,4 +1,5 @@
 const hre = require("hardhat");
+const { ethers } = require("hardhat");
 
 async function main() {
   const [signer] = await hre.ethers.getSigners();
@@ -24,9 +25,11 @@ async function main() {
   ], PING_MODULE_ADDRESS);
   const dispatcher = await pingModule.host();
   
-  // Encode destination for Sepolia
-  const abiCoder = hre.ethers.AbiCoder.defaultAbiCoder();
-  const destination = abiCoder.encode(["uint8", "uint32"], [1, 11155111]); // EVM + Sepolia chainId
+  // --- Encode destination for Sepolia as hex-encoded string (per Hyperbridge demo) ---
+  const destination = ethers.utils.hexlify(ethers.utils.toUtf8Bytes("EVM-11155111"));
+
+  console.log(`[INFO] Dispatcher (host) address: ${dispatcher}`);
+  console.log(`[INFO] Destination bytes: ${destination}`);
   
   const initialMean = 50000; // $50k initial BTC price
   const initialStddev = 1000000; // 1M uncertainty
@@ -72,7 +75,7 @@ async function main() {
   
   const predictionMean = 52000; // $52k prediction
   const predictionStddev = 1500000; // 1.5M uncertainty
-  const stake = hre.ethers.parseEther("0.01"); // 0.01 ETH stake
+  const stake = ethers.utils.parseEther("0.01"); // 0.01 ETH stake
   
   const predictTx = await market.submitPrediction(predictionMean, predictionStddev, { value: stake });
   await predictTx.wait();
@@ -94,7 +97,7 @@ async function main() {
   console.log(`\n[STEP 5] Auto-closing market and requesting price from Hyperbridge...`);
   const chainlinkFeed = "0xA39434A63A52E749F02807ae27335515BA4b07F7"; // BTC/USD on Sepolia
   const timeout = 3600; // 1 hour
-  const fee = hre.ethers.parseEther("0.1"); // 0.1 DAI fee
+  const fee = ethers.utils.parseEther("0.1"); // 0.1 DAI fee
   
   const autoTx = await market.autoCloseAndRequest(chainlinkFeed, timeout, fee);
   await autoTx.wait();

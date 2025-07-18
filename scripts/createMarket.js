@@ -5,7 +5,7 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
   // --- HARDCODED CONFIGURATION ---
-  const factoryAddress = "0x25F1471e8F729a3e8424B883b9D68b2f019D6167"; // Deployed factory on BSC testnet
+  const factoryAddress = "0xcbc436187b96e386659d2cDc7bdbFFcD5B5e0"; // Deployed factory on BSC testnet
   const closeTime = Math.floor(Date.now() / 1000) + 1.5 * 60; // 6 seconds from now for quick test
   const closeDateObj = new Date(closeTime * 1000);
   const day = String(closeDateObj.getUTCDate()).padStart(2, '0');
@@ -24,10 +24,9 @@ async function main() {
   const dispatcher = await pingModule.host();
 
   // --- Encode destination for Sepolia (EVM, chainId 11155111) using StateMachine format ---
-  // StateMachine.evm(11155111) for Sepolia
-  const abiCoder = AbiCoder.defaultAbiCoder();
-  // Format: StateMachine.evm(chainId) - this creates the proper destination encoding
-  const destination = abiCoder.encode(["uint8", "uint32"], [1, 11155111]); // 1 = EVM, 11155111 = Sepolia chainId
+  const responderAddress = "0x3072586fE27A2bE611513A8cCB4378978f9eADAD";
+  const stateMachine = hre.ethers.utils.solidityPack(["uint8", "uint32"], [1, 11155111]); // 4 bytes
+  const destination = stateMachine + responderAddress.slice(2); // 4 bytes + 20 bytes = 24 bytes
 
   console.log(`[INFO] Using factory at: ${factoryAddress}`);
   console.log(`[INFO] Dispatcher (host) address: ${dispatcher}`);
