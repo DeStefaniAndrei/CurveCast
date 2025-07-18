@@ -169,30 +169,27 @@ contract PredictionMarket is Ownable, IIsmpModule {
         emit PredictionSubmitted(msg.sender, mean, stddev, msg.value);
     }
 
-    function closeMarket() external onlyOwner {
+    // Internal version of closeMarket
+    function _closeMarketInternal() internal {
         require(state == MarketState.Open, "Already closed");
         require(block.timestamp >= closeTime, "Too early to close");
         state = MarketState.Closed;
         emit MarketClosed();
     }
 
-    // --- Hyperbridge: Request price from Chainlink feed via GET request ---
-    function requestPriceGet(address chainlinkFeed, uint64 timeout, uint256 fee) external onlyOwner onlyClosed {
+    // Internal version of requestPriceGet
+    function _requestPriceGetInternal(address chainlinkFeed, uint64 timeout, uint256 fee) internal {
         require(!priceRequested, "Price already requested");
-        
         // Encode the Chainlink feed address and slot for latest answer
-        // Chainlink price feeds store the latest answer at slot 0
         bytes memory key = abi.encodePacked(
             chainlinkFeed,
             bytes32(uint256(0)) // slot 0 for latest answer
         );
         bytes[] memory keys = new bytes[](1);
         keys[0] = key;
-        
         // Use the destination stored in the contract
         uint64 height = 0; // latest block (0 means latest)
         bytes memory context = "";
-        
         DispatchGet memory getRequest = DispatchGet({
             dest: destination,
             height: height,
@@ -201,10 +198,17 @@ contract PredictionMarket is Ownable, IIsmpModule {
             fee: fee,
             context: context
         });
-        
         IDispatcher(dispatcher).dispatch(getRequest);
         priceRequested = true;
         emit PriceRequested(destination, key);
+    }
+
+    function closeMarket() external onlyOwner {
+        _closeMarketInternal();
+    }
+
+    function requestPriceGet(address chainlinkFeed, uint64 timeout, uint256 fee) external onlyOwner onlyClosed {
+        _requestPriceGetInternal(chainlinkFeed, timeout, fee);
     }
 
     // --- Hyperbridge: Handle cross-chain GET response (price) ---
@@ -257,9 +261,9 @@ contract PredictionMarket is Ownable, IIsmpModule {
     // --- Automated close and price request ---
     function autoCloseAndRequest(address chainlinkFeed, uint64 timeout, uint256 fee) external {
         if (state == MarketState.Open && block.timestamp >= closeTime) {
-            closeMarket();
+            _closeMarketInternal();
         }
         require(state == MarketState.Closed, "Market must be closed");
-        requestPriceGet(chainlinkFeed, timeout, fee);
+        _requestPriceGetInternal(chainlinkFeed, timeout, fee);
     }
 } 
