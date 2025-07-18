@@ -28,11 +28,14 @@ export function InteractiveDistributionChart({
   const CHART_MAX_PRICE = 80000
   const CHART_PRICE_RANGE = CHART_MAX_PRICE - CHART_MIN_PRICE
 
+  // Zoom state for X axis (price)
+  const [zoomMin, setZoomMin] = useState(CHART_MIN_PRICE)
+  const [zoomMax, setZoomMax] = useState(CHART_MAX_PRICE)
+
   // Generate normal distribution data points with fixed range
   const generateNormalDistribution = (mean: number, stdDev: number) => {
     const data = []
     const step = CHART_PRICE_RANGE / 100 // 100 data points across the fixed range
-
     for (let price = CHART_MIN_PRICE; price <= CHART_MAX_PRICE; price += step) {
       const y = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((price - mean) / stdDev, 2))
       data.push({
@@ -40,28 +43,23 @@ export function InteractiveDistributionChart({
         probability: y,
       })
     }
-
     return data
   }
-
   const data = generateNormalDistribution(mean, standardDeviation)
 
   // Check if click is near the mean line (within 5% of chart width)
   const isClickNearMeanLine = (clientX: number) => {
     if (!chartRef.current) return false
-
     const rect = chartRef.current.getBoundingClientRect()
     const chartWidth = rect.width
     const clickRatio = (clientX - rect.left) / chartWidth
     const meanRatio = (mean - CHART_MIN_PRICE) / CHART_PRICE_RANGE
-
     return Math.abs(clickRatio - meanRatio) < 0.05 // Within 5% of chart width
   }
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       const isNearMean = isClickNearMeanLine(e.clientX)
-
       if (isNearMean) {
         setIsDraggingMean(true)
         setDragStart({ x: e.clientX, y: e.clientY })
@@ -78,27 +76,22 @@ export function InteractiveDistributionChart({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!chartRef.current) return
-
       if (isDraggingMean) {
         const deltaX = e.clientX - dragStart.x
         const rect = chartRef.current.getBoundingClientRect()
         const chartWidth = rect.width
-
         // Convert pixel movement to price change
         const priceChange = (deltaX / chartWidth) * CHART_PRICE_RANGE
         const newMean = Math.max(
           CHART_MIN_PRICE + 2000,
           Math.min(CHART_MAX_PRICE - 2000, initialValues.mean + priceChange),
         )
-
         onMeanChange(Math.round(newMean))
       } else if (isDraggingCurve) {
         const deltaY = e.clientY - dragStart.y
-
         // Adjust standard deviation based on vertical movement
         const stdDevSensitivity = 30
         const newStdDev = Math.max(500, Math.min(8000, initialValues.stdDev - deltaY * stdDevSensitivity))
-
         onStandardDeviationChange(Math.round(newStdDev))
       }
     },
@@ -135,15 +128,46 @@ export function InteractiveDistributionChart({
     [handleMouseMove, isDraggingMean, isDraggingCurve],
   )
 
+  // Handle scroll to zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const ZOOM_FACTOR = 0.1 // 10% per scroll
+    const rect = chartRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const mouseX = e.clientX - rect.left
+    const mouseRatio = mouseX / rect.width
+    const range = zoomMax - zoomMin
+    const zoomAmount = range * ZOOM_FACTOR * (e.deltaY > 0 ? 1 : -1)
+    // Zoom towards mouse position
+    let newMin = zoomMin + zoomAmount * mouseRatio
+    let newMax = zoomMax - zoomAmount * (1 - mouseRatio)
+    // Clamp to min/max range
+    const minRange = 2000
+    newMin = Math.max(CHART_MIN_PRICE, Math.min(newMin, newMax - minRange))
+    newMax = Math.min(CHART_MAX_PRICE, Math.max(newMax, newMin + minRange))
+    setZoomMin(newMin)
+    setZoomMax(newMax)
+  }, [zoomMin, zoomMax])
+
+  // Reset zoom on double click
+  const handleDoubleClick = useCallback(() => {
+    setZoomMin(CHART_MIN_PRICE)
+    setZoomMax(CHART_MAX_PRICE)
+  }, [])
+
   return (
     <div className="relative">
       <div
         ref={chartRef}
         className={`h-64 w-full select-none ${cursorStyle}`}
+        tabIndex={0}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMoveHover}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onWheel={handleWheel}
+        onDoubleClick={handleDoubleClick}
       >
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
@@ -151,14 +175,12 @@ export function InteractiveDistributionChart({
               dataKey="price"
               type="number"
               scale="linear"
-              domain={[CHART_MIN_PRICE, CHART_MAX_PRICE]}
+              domain={[zoomMin, zoomMax]}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
             />
             <YAxis domain={[0, "dataMax"]} hide />
-
             {/* Thicker draggable mean line */}
             <ReferenceLine x={mean} stroke="#ef4444" strokeWidth={4} strokeOpacity={isDraggingMean ? 0.8 : 0.6} />
-
             {/* Main distribution curve */}
             <Line
               type="monotone"
@@ -171,7 +193,6 @@ export function InteractiveDistributionChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-
       {/* Interaction Hints */}
       <div className="space-y-1 text-xs text-gray-500 mt-2">
         <div className="flex items-center gap-2">
@@ -183,7 +204,6 @@ export function InteractiveDistributionChart({
           <span>Drag the blue curve up/down to adjust confidence width</span>
         </div>
       </div>
-
       <div className="text-center text-sm text-gray-600 mt-2">
         Your prediction centers around <span className="font-semibold">${mean.toLocaleString()}</span> with ±$
         {standardDeviation.toLocaleString()} confidence range

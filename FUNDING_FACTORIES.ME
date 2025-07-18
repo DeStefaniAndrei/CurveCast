@@ -1,0 +1,56 @@
+# Funding a PredictionMarketFactory with USD.h (BSC Testnet)
+
+## 1. Deploy the Factory
+
+Run the deploy script:
+
+```bash
+npx hardhat run scripts/deployFactory.js --network bscTestnet
+```
+- This will deploy the factory contract and print the new factory address.
+- The script will also print instructions for funding the factory.
+
+---
+
+## 2. Fund the Factory with USD.h
+
+Open a Hardhat console:
+
+```bash
+npx hardhat console --network bscTestnet
+```
+
+Paste the following commands (replace `YOUR_FACTORY_ADDRESS` with the address printed by the deploy script):
+
+```js
+const usd = await ethers.getContractAt("IERC20", "0xA801da100bF16D07F668F4A49E1f71fc54D05177")
+const factory = await ethers.getContractAt("PredictionMarketFactory", "YOUR_FACTORY_ADDRESS")
+
+// Approve the factory to spend your USD.h
+await usd.approve(factory.target, ethers.parseEther("100"))
+
+// Fund the factory (transfers 100 USD.h from your wallet to the factory contract)
+await factory.fundFactory(ethers.parseEther("100"))
+```
+
+- You can change `"100"` to any amount you want to fund.
+
+---
+
+## 3. (Optional) Check the Factory’s USD.h Balance
+
+```js
+(await usd.balanceOf(factory.target)).toString()
+```
+- Should show the funded amount in wei (e.g., `100000000000000000000` for 100 USD.h).
+
+---
+
+## 4. Notes
+- You can repeat the approve and fund steps any time to top up the factory.
+- The factory must have enough USD.h to fund new markets.
+- If you get an allowance error, make sure you approved the correct factory address and amount.
+
+---
+
+**Keep this file for reference whenever you need to fund a new factory!** 
