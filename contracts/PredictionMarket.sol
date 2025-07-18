@@ -11,6 +11,7 @@ import { PostResponse } from "@polytope-labs/ismp-solidity/interfaces/Message.so
 import { DispatchPost } from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
 import { DispatchGet } from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ITokenFaucet {
     // drips the feeToken once per day
@@ -62,6 +63,7 @@ contract PredictionMarket is Ownable, IIsmpModule {
     event PriceRequested(bytes destination, bytes payload);
     event PriceReceived(uint256 price);
     event Payout(address indexed user, uint256 amount, int256 pnl);
+    event FeeTokenSpent(address indexed market, uint256 amount);
 
     modifier onlyOpen() {
         require(state == MarketState.Open, "Market not open");
@@ -117,6 +119,10 @@ contract PredictionMarket is Ownable, IIsmpModule {
                 console.log("Could not get fee token from dispatcher");
             }
         }
+        // Automatically approve dispatcher for unlimited USD.h
+        // Assumes the market will be funded with USD.h after deployment
+        address feeToken = 0xA801da100bF16D07F668F4A49E1f71fc54D05177; // USD.h address (hardcoded for BSC testnet)
+        IERC20(feeToken).approve(dispatcher, type(uint256).max);
     }
 
     // Helper: log(stddev) in 1e18 fixed point
@@ -201,6 +207,7 @@ contract PredictionMarket is Ownable, IIsmpModule {
         IDispatcher(dispatcher).dispatch(getRequest);
         priceRequested = true;
         emit PriceRequested(destination, key);
+        emit FeeTokenSpent(address(this), fee);
     }
 
     function closeMarket() external onlyOwner {
@@ -265,5 +272,15 @@ contract PredictionMarket is Ownable, IIsmpModule {
         }
         require(state == MarketState.Closed, "Market must be closed");
         _requestPriceGetInternal(chainlinkFeed, timeout, fee);
+    }
+
+    // Allow owner to top up fee token balance
+    function topUpFeeToken(address feeToken, uint256 amount) external onlyOwner {
+        require(IERC20(feeToken).transferFrom(msg.sender, address(this), amount), "Fee token transfer failed");
+    }
+
+    // Allow owner to approve dispatcher to spend USD.h from this contract
+    function approveFeeToken(address feeToken, address dispatcher, uint256 amount) external onlyOwner {
+        require(IERC20(feeToken).approve(dispatcher, amount), "Fee token approve failed");
     }
 } 

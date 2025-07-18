@@ -7,7 +7,7 @@ async function main() {
   console.log(`[INFO] Signer: ${signer.address}`);
   
   // Step 1: Use existing factory
-  let factoryAddress = "0x45424B86d496EFA5163DA80Afe17570e377cb526"; // updated factory address
+  let factoryAddress = "0x9C7CC6FFfb6ECaf9D0029B110f0Ee69f3f36E011"; // updated factory address
   const factory = await hre.ethers.getContractAt("PredictionMarketFactory", factoryAddress);
   console.log(`[INFO] Using factory at: ${factoryAddress}`);
   
@@ -102,19 +102,21 @@ async function main() {
 
   // Step 6: Wait for Hyperbridge response (no simulation)
   console.log(`\n[STEP 6] Waiting for Hyperbridge response and market resolution...`);
-  // The script can poll for state == Resolved
-  let resolved = false;
-  let outcome = null;
-  for (let i = 0; i < 60; i++) { // poll for up to 10 minutes
-    const state = await market.state();
-    if (state === 2) { // Resolved
-      resolved = true;
-      outcome = await market.outcome();
-      break;
+  // Standard async/await polling function
+  async function pollForResolution(market, maxTries = 60, intervalMs = 10000) {
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+    for (let i = 0; i < maxTries; i++) {
+      const state = await market.state();
+      if (state === 2) {
+        return await market.outcome();
+      }
+      await sleep(intervalMs);
     }
-    await new Promise(resolve => setTimeout(resolve, 10000)); // wait 10 seconds
+    return null;
   }
-  if (resolved) {
+
+  const outcome = await pollForResolution(market);
+  if (outcome !== null) {
     console.log(`[SUCCESS] Market resolved! Outcome: ${outcome}`);
   } else {
     console.log(`[WARN] Market not resolved after waiting. Check Hyperbridge relayer and response.`);

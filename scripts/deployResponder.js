@@ -8,7 +8,9 @@ async function main() {
   const responder = await PriceFeedResponder.deploy(BTC_USD_FEED);
   await responder.waitForDeployment();
 
-  console.log("PriceFeedResponder deployed to:", await responder.getAddress());
+  const responderAddress = await responder.getAddress();
+  console.log("PriceFeedResponder deployed to:", responderAddress);
+  console.log(`[INFO] Use this address as the responder in your Hyperbridge destination encoding!`);
 }
 
 main().catch((error) => {

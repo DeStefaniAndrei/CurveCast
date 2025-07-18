@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  const factoryAddress = "0x45424B86d496EFA5163DA80Afe17570e377cb526"; // updated factory address
+  const factoryAddress = "0x9C7CC6FFfb6ECaf9D0029B110f0Ee69f3f36E011"; // updated factory address
   const prompt = "BTC/USD price test";
   const asset = "BTC/USD";
   const closeTime = Math.floor(Date.now() / 1000) + 60;
