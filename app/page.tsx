@@ -9,7 +9,7 @@ import { WalletConnect } from "@/components/wallet-connect"
 import { TrendingUp } from "lucide-react"
 
 // --- BSC testnet config ---
-const FACTORY_ADDRESS = "0x25F1471e8F729a3e8424B883b9D68b2f019D6167"
+const FACTORY_ADDRESS = "0x9C7CC6FFfb6ECaf9D0029B110f0Ee69f3f36E011"
 const FACTORY_ABI = [
   "function getMarkets() view returns (address[])"
 ]
@@ -40,7 +40,7 @@ export default function HomePage() {
     async function fetchMarket() {
       setLoading(true)
       try {
-        const provider = new ethers.JsonRpcProvider(BSC_RPC)
+        const provider = new ethers.providers.JsonRpcProvider(BSC_RPC)
         const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, provider)
         const markets: string[] = await factory.getMarkets()
         if (markets.length === 0) {
@@ -80,8 +80,10 @@ export default function HomePage() {
   async function connectWallet() {
     const eth = (window as any).ethereum;
     if (eth) {
-      const provider = new ethers.BrowserProvider(eth)
-      const accounts = await provider.send("eth_requestAccounts", [])
+      const provider = new ethers.providers.Web3Provider(eth)
+      await provider.send("eth_requestAccounts", [])
+      const signer = provider.getSigner()
+      const accounts = await provider.listAccounts()
       setWallet(accounts[0])
     } else {
       alert("No wallet found. Please install MetaMask or another wallet.")

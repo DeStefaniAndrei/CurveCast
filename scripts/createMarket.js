@@ -5,8 +5,8 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
   // --- HARDCODED CONFIGURATION ---
-  const factoryAddress = "0xcbc436187b96e386659d2cDc7bdbFFcD5B5e0"; // Deployed factory on BSC testnet
-  const closeTime = Math.floor(Date.now() / 1000) + 1.5 * 60; // 6 seconds from now for quick test
+  const factoryAddress = "0x9C7CC6FFfb6ECaf9D0029B110f0Ee69f3f36E011"; // Correct factory address
+  const closeTime = Math.floor(Date.now() / 1000) + 48 * 60 * 60; // 48 hours from now
   const closeDateObj = new Date(closeTime * 1000);
   const day = String(closeDateObj.getUTCDate()).padStart(2, '0');
   const month = String(closeDateObj.getUTCMonth() + 1).padStart(2, '0');
@@ -16,12 +16,8 @@ async function main() {
   const prompt = `BTC/USD prediction on ${day}/${month}/${year} at ${hour}:${minute}`;
   const asset = "BTC/USD";
 
-  // --- Fetch dispatcher (host) address from Ping module ---
-  const PING_MODULE_ADDRESS = "0xFE9f23F0F2fE83b8B9576d3FC94e9a7458DdDD35"; // BSC testnet
-  const pingModule = await hre.ethers.getContractAt([
-    "function host() view returns (address)"
-  ], PING_MODULE_ADDRESS);
-  const dispatcher = await pingModule.host();
+  // --- Dispatcher address (hardcoded) ---
+  const dispatcher = "0xFE9f23F0F2fE83b8B9576d3FC94e9a7458DdDD35"; // BSC testnet
 
   // --- Encode destination for Sepolia (EVM, chainId 11155111) using StateMachine format ---
   const responderAddress = "0x3072586fE27A2bE611513A8cCB4378978f9eADAD";

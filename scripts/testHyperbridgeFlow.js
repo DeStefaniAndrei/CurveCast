@@ -19,11 +19,12 @@ async function main() {
   const asset = "BTC/USD";
   
   // Get dispatcher address
-  const PING_MODULE_ADDRESS = "0xFE9f23F0F2fE83b8B9576d3FC94e9a7458DdDD35"; // BSC testnet
-  const pingModule = await hre.ethers.getContractAt([
-    "function host() view returns (address)"
-  ], PING_MODULE_ADDRESS);
-  const dispatcher = await pingModule.host();
+  // const PING_MODULE_ADDRESS = "0xFE9f23F0F2fE83b8B9576d3FC94e9a7458DdDD35"; // BSC testnet
+  // const pingModule = await hre.ethers.getContractAt([
+  //   "function host() view returns (address)"
+  // ], PING_MODULE_ADDRESS);
+  // const dispatcher = await pingModule.host();
+  const dispatcher = "0xFE9f23F0F2fE83b8B9576d3FC94e9a7458DdDD35"; // Hardcoded dispatcher address
   
   // --- Encode destination for Sepolia as hex-encoded string (per Hyperbridge demo) ---
   const destination = ethers.utils.hexlify(ethers.utils.toUtf8Bytes("EVM-11155111"));

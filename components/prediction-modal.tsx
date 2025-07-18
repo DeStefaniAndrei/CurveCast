@@ -38,18 +38,19 @@ export function PredictionModal({ isOpen, onClose, marketQuestion, marketAddress
     try {
       if (!(window as any).ethereum) throw new Error("No wallet found")
       if (!marketAddress) throw new Error("No market address")
-      const provider = new ethers.BrowserProvider((window as any).ethereum)
-      const signer = await provider.getSigner()
+      const provider = new ethers.providers.Web3Provider((window as any).ethereum)
+      await provider.send("eth_requestAccounts", [])
+      const signer = provider.getSigner()
       const userAddress = await signer.getAddress()
 
       // 1. Check and approve fee token if needed
       const feeToken = new ethers.Contract(FEE_TOKEN_ADDRESS, ERC20_ABI, signer)
       const allowance = await feeToken.allowance(userAddress, marketAddress)
-      const requiredAmount = ethers.parseUnits(stake || "0", 18) // or set to 1 if fee is fixed
-      if (allowance < requiredAmount) {
+      const requiredAmount = ethers.utils.parseUnits(stake || "0", 18) // or set to 1 if fee is fixed
+      if (allowance.lt(requiredAmount)) {
         // Prompt user to approve MaxUint256 for convenience
         setTxStatus("pending")
-        const txApprove = await feeToken.approve(marketAddress, ethers.MaxUint256)
+        const txApprove = await feeToken.approve(marketAddress, ethers.constants.MaxUint256)
         await txApprove.wait()
       }
 
@@ -58,7 +59,7 @@ export function PredictionModal({ isOpen, onClose, marketQuestion, marketAddress
       const tx = await contract.submitPrediction(
         mean,
         standardDeviation,
-        { value: ethers.parseEther(stake || "0") }
+        { value: ethers.utils.parseEther(stake || "0") }
       )
       await tx.wait()
       setTxStatus("success")
