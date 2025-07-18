@@ -16,15 +16,19 @@ contract PredictionMarketFactory is Ownable {
         string memory asset,
         uint256 closeTime,
         address dispatcher,
-        bytes memory destination
+        bytes memory destination,
+        uint256 initialMean,
+        uint256 initialStddev
     ) external onlyOwner {
         PredictionMarket market = new PredictionMarket(
             prompt,
             asset,
             closeTime,
-            msg.sender,
+            owner(),
             dispatcher,
-            destination
+            destination,
+            initialMean,
+            initialStddev
         );
         markets.push(address(market));
         emit MarketCreated(address(market), prompt, asset, closeTime);
