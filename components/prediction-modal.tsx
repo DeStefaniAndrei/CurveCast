@@ -19,12 +19,6 @@ const MARKET_ABI = [
   "function submitPrediction(uint256 mean, uint256 stddev) payable"
 ]
 
-const FEE_TOKEN_ADDRESS = "0xA801da100bF16D07F668F4A49E1f71fc54D05177"; // BSC testnet fee token
-const ERC20_ABI = [
-  "function allowance(address owner, address spender) view returns (uint256)",
-  "function approve(address spender, uint256 amount) returns (bool)"
-];
-
 export function PredictionModal({ isOpen, onClose, marketQuestion, marketAddress }: PredictionModalProps) {
   const [mean, setMean] = useState(55000) // Default mean
   const [standardDeviation, setStandardDeviation] = useState(5000) // Default std dev
@@ -38,28 +32,13 @@ export function PredictionModal({ isOpen, onClose, marketQuestion, marketAddress
     try {
       if (!(window as any).ethereum) throw new Error("No wallet found")
       if (!marketAddress) throw new Error("No market address")
-      const provider = new ethers.providers.Web3Provider((window as any).ethereum)
-      await provider.send("eth_requestAccounts", [])
-      const signer = provider.getSigner()
-      const userAddress = await signer.getAddress()
-
-      // 1. Check and approve fee token if needed
-      const feeToken = new ethers.Contract(FEE_TOKEN_ADDRESS, ERC20_ABI, signer)
-      const allowance = await feeToken.allowance(userAddress, marketAddress)
-      const requiredAmount = ethers.utils.parseUnits(stake || "0", 18) // or set to 1 if fee is fixed
-      if (allowance.lt(requiredAmount)) {
-        // Prompt user to approve MaxUint256 for convenience
-        setTxStatus("pending")
-        const txApprove = await feeToken.approve(marketAddress, ethers.constants.MaxUint256)
-        await txApprove.wait()
-      }
-
-      // 2. Submit prediction
+      const provider = new ethers.BrowserProvider((window as any).ethereum)
+      const signer = await provider.getSigner()
       const contract = new ethers.Contract(marketAddress, MARKET_ABI, signer)
       const tx = await contract.submitPrediction(
         mean,
         standardDeviation,
-        { value: ethers.utils.parseEther(stake || "0") }
+        { value: ethers.parseEther(stake || "0") }
       )
       await tx.wait()
       setTxStatus("success")

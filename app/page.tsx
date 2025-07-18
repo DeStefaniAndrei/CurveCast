@@ -9,7 +9,7 @@ import { WalletConnect } from "@/components/wallet-connect"
 import { TrendingUp } from "lucide-react"
 
 // --- BSC testnet config ---
-const FACTORY_ADDRESS = "0x9C7CC6FFfb6ECaf9D0029B110f0Ee69f3f36E011"
+const FACTORY_ADDRESS = "0x25F1471e8F729a3e8424B883b9D68b2f019D6167"
 const FACTORY_ABI = [
   "function getMarkets() view returns (address[])"
 ]
@@ -40,7 +40,7 @@ export default function HomePage() {
     async function fetchMarket() {
       setLoading(true)
       try {
-        const provider = new ethers.providers.JsonRpcProvider(BSC_RPC)
+        const provider = new ethers.JsonRpcProvider(BSC_RPC)
         const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, provider)
         const markets: string[] = await factory.getMarkets()
         if (markets.length === 0) {
@@ -80,10 +80,8 @@ export default function HomePage() {
   async function connectWallet() {
     const eth = (window as any).ethereum;
     if (eth) {
-      const provider = new ethers.providers.Web3Provider(eth)
-      await provider.send("eth_requestAccounts", [])
-      const signer = provider.getSigner()
-      const accounts = await provider.listAccounts()
+      const provider = new ethers.BrowserProvider(eth)
+      const accounts = await provider.send("eth_requestAccounts", [])
       setWallet(accounts[0])
     } else {
       alert("No wallet found. Please install MetaMask or another wallet.")
@@ -107,16 +105,16 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center">Markets Board</h2>
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6 text-center">Markets Board</h2>
 
-        {/* Market Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="text-orange-500">₿</span>
+          {/* Market Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-orange-500">₿</span>
               {loading ? "Loading..." : marketPrompt || "No active market"}
-            </CardTitle>
+              </CardTitle>
             {/* Show contract address and timer */}
             {marketAddress && (
               <div className="text-xs text-gray-500 mt-2">
@@ -124,26 +122,26 @@ export default function HomePage() {
                 <span className="ml-4">Expires in: <span className="font-semibold">{timeLeft}</span></span>
               </div>
             )}
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-2">Market Question:</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Market Question:</p>
                 <p className="text-lg">{loading ? "Loading..." : marketPrompt || "No active market"}</p>
-              </div>
+                </div>
 
-              <div className="flex justify-between items-center text-sm text-gray-600">
-                <span>Total Predictions: 1,247</span>
-                <span>Total Volume: $45,230</span>
-              </div>
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>Total Predictions: 1,247</span>
+                  <span>Total Volume: $45,230</span>
+                </div>
 
               <Button onClick={() => setIsPredictionModalOpen(true)} className="w-full" size="lg" disabled={loading || !marketPrompt}>
-                Place Prediction
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  Place Prediction
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
       {/* Prediction Modal */}
       <PredictionModal
